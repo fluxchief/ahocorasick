@@ -1,0 +1,277 @@
+ahocorasick --- search for matches with a keyword tree.
+
+Danny Yoo (dyoo@hkn.eecs.berkeley.edu)
+
+INTRODUCTION
+------
+
+There was a thread in March 2005 where someone mentioned that they
+wanted something to search text for a set of keywords:
+
+    http://mail.python.org/pipermail/python-list/2005-March/269081.html
+
+and I suggested using either suffix trees or an Aho-Corasick
+automaton.  I'd written a wrapper for an implementation of suffix
+trees before, but I hadn't written one for the Aho-Corasick automaton,
+so symmetry demanded that I write a wrapper here too.  *grin*
+
+
+USAGE
+------
+
+######
+>>> import ahocorasick
+>>> tree = ahocorasick.KeywordTree()
+>>> tree.add("alpha")          
+>>> tree.add("alpha beta")
+>>> tree.add("gamma")
+>>>
+>>> tree.make()
+>>>
+>>> tree.search("I went to alpha beta the other day to pick up some spam")
+(10, 15)
+>>> tree.search_long("I went to alpha beta the other day to pick up some spam")
+(10, 20)
+>>> tree.search("and also got some alphabet soup")
+(18, 23)
+>>> tree.search("but no waffles")
+>>> 
+>>> tree.search_long("oh, gamma rays are not tasty")
+(4, 9)
+>>>
+>>> tree.findall("I went to alpha beta to pick up alphabet soup")
+<generator object at 0x279558>
+>>> for match in tree.findall("I went to alpha beta to pick up alphabet soup"):
+...     print match
+... 
+(10, 15)
+(32, 37)
+######
+
+
+The 'ahocorasick' module provides a single class called 'KeywordTree'.
+
+
+KeywordTree has the following methods:
+
+    add(keyword)
+
+        Adds a new keyword to the automaton.  The keyword must be
+        nonempty, and at the moment, cannot contain NULL characters.
+
+
+    make()
+
+        Finalizes construction of the automaton.
+
+        This must be called before doing any searching, and can only
+        be done if at least one keyword has been added.  If called
+        before adding at least one keyword, we'll raise an
+        AssertionError.
+
+
+    search(query, [startpos])
+
+        Searches the query for the leftmost occuring keyword that the
+        automaton knows.  If a match is made, returns the 2-tuple
+        (startIndex, endIndex).  If no match can be found, returns
+        None.  query cannot contain NULL characters at the moment.
+
+        If the optional startpos argument is given, starts the search
+        at that position in the query.
+
+        Note that this matches as quickly as it can: if you want the
+        longest leftmost occuring keyword match, use search_long.
+
+        (startpos added in Release 0.7)
+
+
+    search_long(query, [startpos])
+
+        Same as search(), except that this searches for the longest
+        leftmost keyword that matches.
+
+        (startpos added in Release 0.7)
+
+
+    findall(query, [allow_overlaps=0])
+
+        Returns an iterator of 2-tuples, of all nonoverlapping matches, using
+        search().
+
+        If the optional argument to allow_overlaps is set to True,
+        then subsequent matches are allowed to overlap previous ones.
+
+        (allow_overlaps added in Release 0.9)
+
+
+    findall_long(query, [allow_overlaps=0])
+
+        Returns an iterator of 2-tuples, of all nonoverlapping matches, using
+        search_long().
+
+        If the optional argument to allow_overlaps is set to True,
+        then subsequent matches are allowed to overlap previous ones.
+
+        (allow_overlaps added in Release 0.9)
+
+
+    chases(source_stream)
+
+        Given an iterator of text blocks, returns an iterator of
+        matches, using search().  Each match result is a 2-tuple
+        (text_block, (start, end)).
+
+
+    chases_long(source_stream)
+
+        Given an iterator of text blocks, returns an iterator of
+        matches, using search_long().  Each match result is a 2-tuple
+        (text_block, (start, end)).
+
+
+
+
+
+DEVELOPMENT DETAILS
+------
+
+The Aho-Corasick automaton is a data structure that can quickly
+do a multiple-keyword search across text.  It's described in the
+classic paper 'Efficient string matching: an aid to bibliographic
+search':
+
+    http://portal.acm.org/citation.cfm?id=360855&dl=ACM&coll=GUIDE
+
+
+The majority of the code here was wilfully stolen..., er... "adapted"
+from source code that I found in the Fairly Fast Packet Filter (FFPF)
+project:
+
+    http://ffpf.sourceforge.net/general/overview.php
+
+One of the filters that they include is a fairly clean and simple C
+implementation of the Aho-Corasick keyword tree data structure, so I
+just took that and built a wrapper around it.
+
+
+
+BUGS / CHANGELOG
+------
+
+Release 0.9
+
+    I've added the allow_overlaps flag to findall() and findall_long()
+    for Andre Soreng.
+
+    I've also finally fixed up the memory-hungry implementation of the
+    transition list.  In the original code, each state would take up
+    at least (256 * sizeof(void*)) bytes of addition space, one for
+    each possible state transition.  The problem is that most states
+    don't usable transitions, so most of that space is waste.
+
+    I've modified the implementation to either use a dense
+    representation of the transitions --- the original "dense" array
+    implementation --- or, instead a linked-list implementation of the
+    transitions.  This implementation detail should make the tree
+    significantly less memory intensive.
+
+    Right now, it's controlled by the depth of each state: states
+    whose depth >= 3 get the sparse representation.
+
+    But as a warning, I have not yet put in all the xalloc checks that
+    I know I need to make: I'll do so for Release 1.0.
+
+    Bugs fixed:
+
+        o Fixed overly permissive negative indices in startpos.  Now
+          properly flags those as AssertionErrors.  Thanks to John
+          Machin for the heads up.
+
+Release 0.8
+
+    Added the findall*() and chases*() functions to make it easier to
+    find all matches in a string.  Scott David Daniels suggested the
+    chases* interface from:
+
+        http://mail.python.org/pipermail/python-list/2005-March/270862.html
+
+    so this has been done now.  On the backend, I made things into a
+    package, and moved the C module from 'ahocorasick' to
+    'ahocorasick._ahocorasick'.
+
+    On memory: John Machin notes that node allocation uses a lot of
+    memory, so that's something to be aware of.  With his
+    encouragement, I've fixed allocation so that all memory allocation
+    goes through PyMem_Malloc and PyMem_Free.
+
+    I've also added an interface to inspect the actual automaton,
+    although I'm not providing an interface to mutate it at the
+    moment.  [FIXME: document KeywordTree.zerostate(), State.goto(),
+    State.fail(), State.labels(), and State.output().]
+
+    The automaton can be inspected even before calling make(), but of
+    course not all of the transitions will be there.  But it should
+    make writing a graphical visualizer of the tree very nice.  I
+    cooked up a quick-and-dirty one in ahocorasick.graphviz, but I
+    haven't polished it yet.
+
+
+
+Release 0.7
+
+    John Machin notes that I messed up the argument-passing calling
+    conventions using METH_VARARGS.  Stripped out the superfluous
+    keyword argument stuff.
+
+    He also pointed out the edge case of adding an empty string as a
+    keyword.  Doing:
+
+        tree.add("")
+    
+    caused a segfault.  Oops.  I must remember not to forget tests
+    against the empty string.  Fixed.
+
+    Release 0.6 worked only with C strings only.  This has been fixed
+    in Release 0.7: embedded NULLs are now allowed.
+
+    Finally, John Machin's request for an optional startpos argument
+    has been answered.  *grin*
+
+
+Release 0.6
+
+    Andre Soereng and John Machin sent bug reports about the 'inline'
+    directive not working on their respective compilers, so I've taken
+    those out.
+
+    John Machin found a bug in the add() method.  If a keyword was
+    added that was a prefix of a previous keyword, nothing would
+    happen.  This has been fixed, and I'd better send this upstream to
+    the FFPF developers too.
+
+
+Release 0.5
+
+    I did find a memory-leak bug in the original source aho-corasick.c
+    code, and have sent my fixes upstream to the FFPF developers.
+
+    Deallocating a large tree might take a long time; I've noticed
+    that a lot of the code involves following what is essentially a
+    long linked list.  I'm not sure how serious of a problem this is
+    in practice.
+
+
+
+
+
+
+
+TODO
+------
+
+    Bulletproof the implementation: clean up the code, and make sure
+    all memory allocations are checked.
+
+    Allow dense-vs-sparse representatation of the states to be
+    more controllable.

@@ -1,0 +1,15 @@
+Metadata-Version: 1.0
+Name: ahocorasick
+Version: 0.9
+Summary: Aho-Corasick automaton implementation
+Home-page: http://hkn.eecs.berkeley.edu/~dyoo/python/ahocorasick/
+Author: Danny Yoo
+Author-email: dyoo@hkn.eecs.berkeley.edu
+License: GPL
+Download-URL: http://hkn.eecs.berkeley.edu/~dyoo/python/ahocorasick/ahocorasick-0.9.tar.gz
+Description: The Aho-Corasick automaton is a data structure that can quickly do a multiple-keyword search across text. It's described in the classic paper 'Efficient string matching: an aid to bibliographic search': http://portal.acm.org/citation.cfm?id=360855&dl=ACM&coll=GUIDE. The majority of the code here is adapted from source code from the Fairly Fast Packet Filter (FFPF) project: http://ffpf.sourceforge.net/general/overview.php.
+Platform: any
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Topic :: Text Editors :: Text Processing

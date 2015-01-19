@@ -6,7 +6,7 @@
 
  */
 
-
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 #include "structmember.h"
 #include "aho-corasick.h"
@@ -98,7 +98,7 @@ ahocorasick_KeywordTree_add(ahocorasick_KeywordTree *self,
 			    PyObject *args,
 			    PyObject *kwargs) {
 	unsigned char *newKeyword;
-	size_t n;
+	Py_ssize_t n;
 	static char *kwlist[] = {"keyword", NULL};
 	if (! PyArg_ParseTupleAndKeywords
 	    (args, kwargs, "s#", kwlist, &newKeyword, &n)) {

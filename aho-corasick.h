@@ -104,7 +104,7 @@ typedef struct aho_corasick aho_corasick_t;
 int aho_corasick_init(aho_corasick_t *);
 
 /* Adds a new string to the tree, given that the string is of length n. */
-int aho_corasick_addstring(aho_corasick_t *,unsigned char *, size_t n);
+int aho_corasick_addstring(aho_corasick_t *,unsigned char *, Py_ssize_t n);
 
 /* Finalizes construction by setting up the failrue transitions, as
    well as the goto transitions of the zerostate. */

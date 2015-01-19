@@ -168,6 +168,8 @@ static int aho_corasick_goto_initialize(aho_corasick_state_t *state) {
 		slist_init(state->_transitions.data.slist);
 		return 0;
 	}
+
+    return -1;
 }
 
 
@@ -419,7 +421,7 @@ fail:
 
 
 int
-aho_corasick_addstring(aho_corasick_t *in, unsigned char *string, size_t n)
+aho_corasick_addstring(aho_corasick_t *in, unsigned char *string, Py_ssize_t n)
 {
 	aho_corasick_t* g = in;
 	aho_corasick_state_t *state,*s = NULL;

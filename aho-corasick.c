@@ -211,7 +211,7 @@ ahocorasick_KeywordTree_search_helper(aho_corasick_t *g,
 {
 	size_t j;
 	aho_corasick_state_t *state;
-	for(j = startpos,state = g->zerostate ; j < n ; j++)
+	for(j = startpos,state = g->zerostate ; (int)j < (int)n && (int)j >= 0 ; j++)
 	{
 		while( aho_corasick_goto_get(state,*(string+j)) == FAIL ) 
 		{
